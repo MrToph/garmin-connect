@@ -1,4 +1,3 @@
-import FormData from 'form-data';
 import _ from 'lodash';
 import { DateTime } from 'luxon';
 import * as fs from 'fs';
@@ -216,29 +215,30 @@ export default class GarminConnect {
         );
     }
 
-    async uploadActivity(
-        file: string,
-        format: UploadFileTypeTypeValue = 'fit'
-    ) {
-        const detectedFormat = (format || path.extname(file))?.toLowerCase();
-        if (!_.includes(UploadFileType, detectedFormat)) {
-            throw new Error('uploadActivity - Invalid format: ' + format);
-        }
+    // commented because it uses formData and post which likely doesn't work, see HttpClient.ts post for more info.
+    // async uploadActivity(
+    //     file: string,
+    //     format: UploadFileTypeTypeValue = 'fit'
+    // ) {
+    //     const detectedFormat = (format || path.extname(file))?.toLowerCase();
+    //     if (!_.includes(UploadFileType, detectedFormat)) {
+    //         throw new Error('uploadActivity - Invalid format: ' + format);
+    //     }
 
-        const fileBuffer = fs.createReadStream(file);
-        const form = new FormData();
-        form.append('userfile', fileBuffer);
-        const response = await this.client.post(
-            this.url.UPLOAD + '.' + format,
-            form,
-            {
-                headers: {
-                    'Content-Type': form.getHeaders()['content-type']
-                }
-            }
-        );
-        return response;
-    }
+    //     const fileBuffer = fs.createReadStream(file);
+    //     const form = new FormData();
+    //     form.append('userfile', fileBuffer);
+    //     const response = await this.client.post(
+    //         this.url.UPLOAD + '.' + format,
+    //         form,
+    //         {
+    //             headers: {
+    //                 'Content-Type': form.getHeaders()['content-type']
+    //             }
+    //         }
+    //     );
+    //     return response;
+    // }
 
     async deleteActivity(activity: {
         activityId: GCActivityId;

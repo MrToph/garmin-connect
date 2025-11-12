@@ -1,3 +1,6 @@
+> [!NOTE]
+> This fork adds support for the library for use in Cloudflare Workers.
+
 # garmin-connect
 
 ## v1.6.0 refactor

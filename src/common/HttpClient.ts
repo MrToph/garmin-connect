@@ -4,7 +4,6 @@ import axios, {
     AxiosResponse,
     RawAxiosRequestHeaders
 } from 'axios';
-import FormData from 'form-data';
 import _ from 'lodash';
 import { DateTime } from 'luxon';
 import OAuth from 'oauth-1.0a';
@@ -130,8 +129,21 @@ export class HttpClient {
         data: any,
         config?: AxiosRequestConfig<any>
     ): Promise<T> {
-        const response = await this.client.post<T>(url, data, config);
-        return response?.data;
+        // Use native fetch instead of axios for POST (axios POST doesn't work in Cloudflare Workers for some reason)
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: config?.headers as Record<string, string>,
+            body: data
+        });
+
+        const text = await response.text();
+
+        // Try to parse as JSON, otherwise return as text
+        try {
+            return JSON.parse(text) as T;
+        } catch {
+            return text as T;
+        }
     }
 
     async put<T>(
@@ -240,20 +252,25 @@ export class HttpClient {
         };
         const step3Url = `${this.url.SIGNIN_URL}?${qs.stringify(signinParams)}`;
         // console.log('login - step3Url:', step3Url);
-        const step3Form = new FormData();
-        step3Form.append('username', username);
-        step3Form.append('password', password);
-        step3Form.append('embed', 'true');
-        step3Form.append('_csrf', csrf_token);
-        const step3Result = await this.post<string>(step3Url, step3Form, {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                Dnt: 1,
-                Origin: this.url.GARMIN_SSO_ORIGIN,
-                Referer: this.url.SIGNIN_URL,
-                'User-Agent': USER_AGENT_BROWSER
+        // Build URL-encoded form data (not FormData)
+        const step3Body = new URLSearchParams();
+        step3Body.append('username', username);
+        step3Body.append('password', password);
+        step3Body.append('embed', 'true');
+        step3Body.append('_csrf', csrf_token);
+        const step3Result = await this.post<string>(
+            step3Url,
+            step3Body.toString(),
+            {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    Dnt: 1,
+                    Origin: this.url.GARMIN_SSO_ORIGIN,
+                    Referer: this.url.SIGNIN_URL,
+                    'User-Agent': USER_AGENT_BROWSER
+                }
             }
-        });
+        );
         // console.log('step3Result:', step3Result)
         this.handleAccountLocked(step3Result);
         this.handlePageTitle(step3Result);
